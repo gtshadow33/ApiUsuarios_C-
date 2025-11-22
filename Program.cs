@@ -4,7 +4,6 @@ using ApiUsuarios.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,26 +41,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// ----------------------------------
+
 // 4. Autorización
-// ----------------------------------
+
 builder.Services.AddAuthorization();
 
-// ----------------------------------
+
 // Construir la app
-// ----------------------------------
+
 var app = builder.Build();
 
-// ----------------------------------
-// 5. Migrar BD
-// ----------------------------------
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-
-    // ⚠️ Se eliminó la creación automática del usuario admin
-}
 
 
 app.UseAuthentication();
