@@ -17,9 +17,8 @@ public class UserController : ControllerBase
         _context = context;
     }
 
-    // -------------------------------------------------------
+
     // GET /users/me   → Usuario autenticado ve su propio perfil
-    // -------------------------------------------------------
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
@@ -30,7 +29,7 @@ public class UserController : ControllerBase
         if (user == null)
             return NotFound();
 
-        Usuario safeUser = new Usuario
+        safeUserDto safeUser = new safeUserDto
         {
             Id = user.Id,
             Nombre = user.Nombre,
@@ -40,19 +39,28 @@ public class UserController : ControllerBase
         return Ok(safeUser);
     }
 
-    // -------------------------------------------------------
     // GET /users   → Solo admin puede ver a todos los usuarios
-    // -------------------------------------------------------
-    [Authorize(Roles = "admin")]
-    [HttpGet]
-    public IActionResult GetAll()
-    {
-        return Ok(_context.Usuarios.ToList());
-    }
 
-    // -------------------------------------------------------
+[Authorize(Roles = "admin")]
+[HttpGet]
+public IActionResult GetAll()
+{
+    var safeUsers = _context.Usuarios
+        .Select(u => new safeUserDto
+        {
+            Id = u.Id,
+            Nombre = u.Nombre,
+            Email = u.Email,
+            Rol = u.Rol
+        })
+        .ToList();
+
+    return Ok(safeUsers);
+}
+
+
     // POST /users   → Crear usuario (solo admin)
-    // -------------------------------------------------------
+
     [Authorize(Roles = "admin")]
     [HttpPost]
     public IActionResult Create([FromBody] CreateUserDto dto)
@@ -65,15 +73,23 @@ public class UserController : ControllerBase
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
+        safeUserDto safeUser = new safeUserDto
+        {
+            Id = user.Id,
+            Nombre = user.Nombre,
+            Email = user.Email,
+            Rol = user.Rol
+        };
+
         _context.Usuarios.Add(user);
         _context.SaveChanges();
 
-        return Ok(user);
+        return Ok(safeUser);
     }
 
-    // -------------------------------------------------------
+
     // PUT /users/{id}  → Actualizar usuario (solo admin)
-    // -------------------------------------------------------
+
     [Authorize(Roles = "admin")]
     [HttpPut("{id}")]
     public IActionResult Update(int id, [FromBody] UpdateUserDto dto)
@@ -93,9 +109,9 @@ public class UserController : ControllerBase
         return Ok(user);
     }
 
-    // -------------------------------------------------------
+
     // DELETE /users/{id}  → Eliminar usuario (solo admin)
-    // -------------------------------------------------------
+
     [Authorize(Roles = "admin")]
     [HttpDelete("{id}")]
     public IActionResult Delete(int id)
@@ -128,7 +144,7 @@ public class UpdateUserDto
     public string? Password { get; set; }
 }
 
-public class Usuario
+public class safeUserDto
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = "";

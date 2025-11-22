@@ -4,9 +4,8 @@ using ApiUsuarios.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models; // Correcto
+using Microsoft.OpenApi.Models;
 using System.Text;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,37 +53,16 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // ----------------------------------
-// 5. Migrar BD y crear admin inicial
+// 5. Migrar BD
 // ----------------------------------
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
-    // Crear admin solo si no existe ninguno
-    if (!db.Usuarios.Any())
-    {
-        db.Usuarios.Add(new Usuario
-        {
-            Nombre = "SuperAdmin",
-            Email = "admin@admin.com",
-            Rol = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123")
-        });
-
-        db.SaveChanges();
-        Console.WriteLine("⚡ Usuario administrador inicial creado: admin@admin.com / admin123");
-    }
+    // ⚠️ Se eliminó la creación automática del usuario admin
 }
 
-// ----------------------------------
-// 6. Middleware
-// ----------------------------------
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
 app.UseAuthentication();
 app.UseAuthorization();
