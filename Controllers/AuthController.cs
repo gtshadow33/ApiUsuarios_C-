@@ -24,11 +24,11 @@ public class AuthController : ControllerBase
     {
         var user = _context.Usuarios.FirstOrDefault(u => u.Email == request.Email);
         if (user == null) 
-            return Unauthorized(new { message = "Usuario no existe" });
+            return Unauthorized(new { message = "incio invalido" });
 
         bool validPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         if (!validPassword)
-            return Unauthorized(new { message = "Contraseña incorrecta" });
+            return Unauthorized(new { message = "Inicio invalido" });
 
         var token = _jwt.GenerarToken(user);
         return Ok(new { token });
