@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using ApiUsuarios.Data;
 using ApiUsuarios.Models;
 using BCrypt.Net;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiUsuarios.Controllers;
 
@@ -17,53 +19,54 @@ public class UserController : ControllerBase
         _context = context;
     }
 
-
     // GET /users/me   → Usuario autenticado ve su propio perfil
     [Authorize]
     [HttpGet("me")]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
-        int userId = int.Parse(User.FindFirst("nameidentifier")!.Value);
-        var user = _context.Usuarios.Find(userId);
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (claim == null)
+            return Unauthorized("No se encontró el claim NameIdentifier en el token.");
 
+        int userId = int.Parse(claim.Value);
+
+        var user = await _context.Usuarios.FindAsync(userId);
         if (user == null)
-            return NotFound();
+            return NotFound("Usuario no encontrado.");
 
-        safeUserDto safeUser = new safeUserDto
+        var safeUser = new safeUserDto
         {
             Id = user.Id,
             Nombre = user.Nombre,
             Email = user.Email,
             Rol = user.Rol
         };
+
         return Ok(safeUser);
     }
 
     // GET /users   → Solo admin puede ver a todos los usuarios
+    [Authorize(Roles = "admin,subadmin")]
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var safeUsers = await _context.Usuarios
+            .Select(u => new safeUserDto
+            {
+                Id = u.Id,
+                Nombre = u.Nombre,
+                Email = u.Email,
+                Rol = u.Rol
+            })
+            .ToListAsync();
 
-[Authorize(Roles = "admin")]
-[HttpGet]
-public IActionResult GetAll()
-{
-    var safeUsers = _context.Usuarios
-        .Select(u => new safeUserDto
-        {
-            Id = u.Id,
-            Nombre = u.Nombre,
-            Email = u.Email,
-            Rol = u.Rol
-        })
-        .ToList();
-
-    return Ok(safeUsers);
-}
-
+        return Ok(safeUsers);
+    }
 
     // POST /users   → Crear usuario (solo admin)
-
     [Authorize(Roles = "admin")]
     [HttpPost]
-    public IActionResult Create([FromBody] CreateUserDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
     {
         var user = new Usuario
         {
@@ -73,7 +76,10 @@ public IActionResult GetAll()
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
-        safeUserDto safeUser = new safeUserDto
+        _context.Usuarios.Add(user);
+        await _context.SaveChangesAsync();
+
+        var safeUser = new safeUserDto
         {
             Id = user.Id,
             Nombre = user.Nombre,
@@ -81,74 +87,52 @@ public IActionResult GetAll()
             Rol = user.Rol
         };
 
-        _context.Usuarios.Add(user);
-        _context.SaveChanges();
-
         return Ok(safeUser);
     }
 
-
     // PUT /users/{id}  → Actualizar usuario (solo admin)
-
     [Authorize(Roles = "admin")]
     [HttpPut("{id}")]
-    public IActionResult Update(int id, [FromBody] UpdateUserDto dto)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
     {
-        var user = _context.Usuarios.Find(id);
-        if (user == null) return NotFound();
+        var user = await _context.Usuarios.FindAsync(id);
+        if (user == null)
+            return NotFound();
 
         user.Nombre = dto.Nombre ?? user.Nombre;
         user.Email = dto.Email ?? user.Email;
         user.Rol = dto.Rol ?? user.Rol;
 
         if (!string.IsNullOrEmpty(dto.Password))
+        {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+        }
 
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
-        return Ok(user);
+        var safeUser = new safeUserDto
+        {
+            Id = user.Id,
+            Nombre = user.Nombre,
+            Email = user.Email,
+            Rol = user.Rol
+        };
+
+        return Ok(safeUser);
     }
 
-
     // DELETE /users/{id}  → Eliminar usuario (solo admin)
-
     [Authorize(Roles = "admin")]
     [HttpDelete("{id}")]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var user = _context.Usuarios.Find(id);
+        var user = await _context.Usuarios.FindAsync(id);
         if (user == null)
             return NotFound();
 
         _context.Usuarios.Remove(user);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync();
 
         return Ok("Usuario eliminado");
     }
-}
-
-// DTOs
-public class CreateUserDto
-{
-    public string Nombre { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string Rol { get; set; } = "usuario";
-    public string Password { get; set; } = "";
-}
-
-public class UpdateUserDto
-{
-    public string? Nombre { get; set; }
-    public string? Email { get; set; }
-    public string? Rol { get; set; }
-    public string? Password { get; set; }
-}
-
-public class safeUserDto
-{
-    public int Id { get; set; }
-    public string Nombre { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string Rol { get; set; } = "usuario";
-
 }

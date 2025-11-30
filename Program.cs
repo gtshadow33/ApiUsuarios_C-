@@ -1,5 +1,4 @@
 using ApiUsuarios.Data;
-using ApiUsuarios.Models;
 using ApiUsuarios.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;

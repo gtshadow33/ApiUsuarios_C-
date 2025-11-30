@@ -6,5 +6,5 @@ public class Usuario
     public string Nombre { get; set; } = "";
     public string Email { get; set; } = "";
     public string PasswordHash { get; set; } = "";
-    public string Rol { get; set; } = "usuario"; // admin o usuario
+    public string Rol { get; set; } = "usuario"; // admin o usuario o subadmin
 }
