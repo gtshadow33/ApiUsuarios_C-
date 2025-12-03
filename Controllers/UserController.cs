@@ -135,4 +135,11 @@ public class UserController : ControllerBase
 
         return Ok("Usuario eliminado");
     }
+    [Authorize(Roles = "admin,subadmin")]
+    [HttpGet("count")]
+    public async Task<IActionResult> GetUserCount()
+    {
+        var count = await _context.Usuarios.CountAsync();
+        return Ok(new { userCount = count });
+    }
 }
