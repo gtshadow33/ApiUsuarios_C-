@@ -142,4 +142,25 @@ public class UserController : ControllerBase
         var count = await _context.Usuarios.CountAsync();
         return Ok(new { userCount = count });
     }
+    
+    // Admin puede ver detalles de cualquier usuario
+    [Authorize(Roles = "admin,subadmin")]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(int id)
+    {
+        var user = await _context.Usuarios.FindAsync(id);
+        if (user == null)
+            return NotFound("Usuario no encontrado.");
+
+        var safeUser = new safeUserDto
+        {
+            Id = user.Id,
+            Nombre = user.Nombre,
+            Email = user.Email,
+            Rol = user.Rol
+        };
+
+        return Ok(safeUser);
+    }
+
 }
