@@ -8,22 +8,42 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // ----------------------------------
-// 1. Configurar EF Core + PostgreSQL
+// 1. EF Core + PostgreSQL
 // ----------------------------------
 builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 // ----------------------------------
-// 2. Servicios necesarios
+// 2. Controladores
 // ----------------------------------
-builder.Services.AddSingleton<JwtService>();
-
 builder.Services.AddControllers();
+
+// ----------------------------------
+// 3. Swagger
+// ----------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ----------------------------------
-// 3. Autenticación JWT
+// 4. CORS(configurar los dominios permitidos)
+// ----------------------------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// ----------------------------------
+// 5. Servicios
+// ----------------------------------
+builder.Services.AddSingleton<JwtService>();
+
+// ----------------------------------
+// 6. Autenticación JWT
 // ----------------------------------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -40,17 +60,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
-// 4. Autorización
-
+// ----------------------------------
+// 7. Autorización
+// ----------------------------------
 builder.Services.AddAuthorization();
 
-
-// Construir la app
-
+// ----------------------------------
+// 8. Construir la app
+// ----------------------------------
 var app = builder.Build();
 
+// ----------------------------------
+// 9. Middleware
+// ----------------------------------
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
+// CORS SIEMPRE antes de auth
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
