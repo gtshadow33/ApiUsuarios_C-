@@ -135,6 +135,7 @@ public class UserController : ControllerBase
 
         return Ok("Usuario eliminado");
     }
+    // GET /users/count  → Contar usuarios (solo admin y subadmin)
     [Authorize(Roles = "admin,subadmin")]
     [HttpGet("count")]
     public async Task<IActionResult> GetUserCount()
